@@ -1,0 +1,32 @@
+merge into emp_scd2 as tgt 
+using 
+    (
+        select empno as join_key, *,hash(*) as hash_col from emp_stg union all 
+        select null as join_key, STG.* from emp_stg_vw as stg
+        join emp_scd2 tgt on stg.empno = tgt.empno
+        where tgt.active=true and stg.hash_col <> tgt.hash_col
+    ) as stg
+on stg.join_key = tgt.empno
+when matched and tgt.active = TRUE and(stg.hash_col <> tgt.hash_col) then
+update 
+    set tgt.hash_col = stg.hash_col, tgt.valid_to = current_date(), tgt.active=FALSE 
+
+when not matched  then
+insert 
+    (tgt.empno, tgt.ename, tgt.job, tgt.mgr, tgt.hiredate, tgt.sal, tgt.comm, tgt.deptno, tgt.hash_col, tgt.valid_from, tgt.valid_to, tgt.active) 
+    values(stg.empno, stg.ename, stg.job, stg.mgr, stg.hiredate, stg.sal, stg.comm, stg.deptno, stg.hash_col, current_date(), null, true) ;
+    
+-- for versioning
+select * , row_number() over(partition by empno order by valid_to) as Version
+from emp_scd2;
+
+
+
+
+
+
+
+
+
+
+
