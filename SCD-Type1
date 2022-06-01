@@ -1,0 +1,11 @@
+merge into emp_tgt as tgt using (select *, hash(*) as hash_col from emp_stg) as stg
+on stg.empno = tgt.empno
+when matched and (stg.hash_col <> tgt.hash_col) then
+update 
+    set tgt.empno = stg.empno, tgt.ename = stg.ename, tgt.job = stg.job, tgt.mgr = stg.mgr, tgt.hiredate = stg.hiredate,
+    tgt.sal = stg.sal, tgt.comm = stg.comm, tgt.deptno = stg.deptno, tgt.hash_col = stg.hash_col
+
+when not matched then
+insert 
+    (tgt.empno, tgt.ename, tgt.job, tgt.mgr, tgt.hiredate, tgt.sal, tgt.comm, tgt.deptno, tgt.hash_col) 
+    values(stg.empno, stg.ename, stg.job, stg.mgr, stg.hiredate, stg.sal, stg.comm, stg.deptno, stg.hash_col) ;
